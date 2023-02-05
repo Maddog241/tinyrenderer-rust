@@ -29,30 +29,26 @@ fn line(image: &mut MyImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>)
 
     let dx = (x1 - x0) as i32;
 
-    if dx != 0 {
-        let derror = 2 * (y1 - y0).abs() as i32;
-        let mut error = 0;
+    let derror = 2 * (y1 - y0).abs() as i32;
+    let mut error = 0;
 
-        let mut y = y0 as u32;
-        for x in (x0 as u32)..(x1 as u32 + 1) {
-            if !steep {
-                image.set(x, y, color);
-            } else {
-                image.set(y, x, color);
-            }
-    
-            error += derror;
-            if error > dx {
-                if y1 >= y0 {
-                    y += 1;
-                } else {
-                    y -= 1;
-                }
-                error -= dx * 2;
-            }
+    let mut y = y0 as u32;
+    for x in (x0 as u32)..(x1 as u32 + 1) {
+        if !steep {
+            image.set(x, y, color);
+        } else {
+            image.set(y, x, color);
         }
-    } else {
-        image.set(x0 as u32, y0 as u32, color);
+
+        error += derror;
+        if error > dx {
+            if y1 >= y0 {
+                y += 1;
+            } else {
+                y -= 1;
+            }
+            error -= dx * 2;
+        }
     }
 }
 
@@ -71,6 +67,8 @@ fn main() {
     line(&mut image, 75, 10, 95, 90, WHITE);
     // lower-right to upper-left
     line(&mut image, 95, 10, 75, 90, WHITE);
+    // error
+    line(&mut image, 10, 10, 10, 10, WHITE);
 
     image.write_img("output.png");
 }
