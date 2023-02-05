@@ -27,16 +27,29 @@ fn line(image: &mut MyImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>)
         swap(&mut y0, &mut y1);
     }
 
-    if x0 != x1 {
-        let k = (y1 - y0) / (x1 - x0);
+    let dx = (x1 - x0) as i32;
+
+    if dx != 0 {
+        let derror = 2 * (y1 - y0).abs() as i32;
+        let mut error = 0;
+
+        let mut y = y0 as u32;
         for x in (x0 as u32)..(x1 as u32 + 1) {
-            let y = y0 + (x as f64 - x0) * k;
             if !steep {
-                image.set(x as u32, y as u32, color);
+                image.set(x, y, color);
             } else {
-                image.set(y as u32, x as u32, color);
+                image.set(y, x, color);
             }
     
+            error += derror;
+            if error > dx {
+                if y1 >= y0 {
+                    y += 1;
+                } else {
+                    y -= 1;
+                }
+                error -= dx * 2;
+            }
         }
     } else {
         image.set(x0 as u32, y0 as u32, color);
