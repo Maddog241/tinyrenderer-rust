@@ -7,6 +7,7 @@ use cgmath::Vector3;
 use image::Rgb;
 use model::Model;
 use myimage::MyImage;
+use rand::random;
 
 const WHITE: Rgb<u8> = Rgb([255, 255, 255]);
 const RED: Rgb<u8> = Rgb([255, 0, 0]);
@@ -92,15 +93,18 @@ fn main() {
     let model = Model::new("./obj/african_head.obj");
 
     for abc in model.faces {
-        for i in 0..3 {
-            let v0 = model.verts[abc[i]];
-            let v1 = model.verts[abc[(i+1)%3]];
-            let x0 = ((v0.x+1.0)/2.0 * (width-1) as f32) as u32;
-            let y0 = ((v0.y+1.0)/2.0 * (height-1) as f32) as u32;
-            let x1 = ((v1.x+1.0)/2.0 * (width-1) as f32) as u32;
-            let y1 = ((v1.y+1.0)/2.0 * (height-1) as f32) as u32;
-            line(&mut image, x0, y0, x1, y1, WHITE);
-        }
+        let v0 = model.verts[abc[0]];
+        let v1 = model.verts[abc[1]];
+        let v2 = model.verts[abc[2]];
+
+        let x0 = ((v0.x+1.0)/2.0 * (width-1) as f32) as u32;
+        let y0 = ((v0.y+1.0)/2.0 * (height-1) as f32) as u32;
+        let x1 = ((v1.x+1.0)/2.0 * (width-1) as f32) as u32;
+        let y1 = ((v1.y+1.0)/2.0 * (height-1) as f32) as u32;
+        let x2 = ((v2.x+1.0)/2.0 * (width-1) as f32) as u32;
+        let y2 = ((v2.y+1.0)/2.0 * (height-1) as f32) as u32;
+
+        triangle(&mut image, x0, y0, x1, y1, x2, y2, Rgb([random::<u8>(), random::<u8>(), random::<u8>()]));
     }
 
     image.write_img("output.png");
