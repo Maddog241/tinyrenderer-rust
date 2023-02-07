@@ -19,4 +19,8 @@ impl MyImage {
         let mut writer = std::fs::File::create(path).unwrap();
         self.img.write_to(&mut writer, ImageOutputFormat::Png).unwrap(); 
     }
+
+    pub fn dimensions(&self) -> (u32, u32) {
+        self.img.dimensions()
+    }
 }
