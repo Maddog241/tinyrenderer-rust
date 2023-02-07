@@ -1,11 +1,12 @@
 mod myimage;
-mod vec;
+mod model;
 
 use std::mem::swap;
 
+use cgmath::Vector3;
 use image::Rgb;
+use model::Model;
 use myimage::MyImage;
-use vec::Vec3f;
 
 const WHITE: Rgb<u8> = Rgb([255, 255, 255]);
 const RED: Rgb<u8> = Rgb([255, 0, 0]);
@@ -54,8 +55,8 @@ fn line(image: &mut MyImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>)
 }
 
 fn barycentric(x: u32, y: u32, ax: u32, ay: u32, bx: u32, by: u32, cx: u32, cy: u32) -> (f64, f64, f64) {
-    let vec_x = Vec3f::new(bx as f64 - ax as f64, cx as f64 - ax as f64, ax as f64 - x as f64);
-    let vec_y = Vec3f::new(by as f64 - ay as f64, cy as f64 - ay as f64, ay as f64 - y as f64);
+    let vec_x = Vector3::new(bx as f64 - ax as f64, cx as f64 - ax as f64, ax as f64 - x as f64);
+    let vec_y = Vector3::new(by as f64 - ay as f64, cy as f64 - ay as f64, ay as f64 - y as f64);
     let mut uv1 = vec_x.cross(vec_y);
     if uv1.z == 0.0 {
         // in this case, the triangle is degenerate
@@ -85,9 +86,22 @@ fn triangle(image: &mut MyImage, ax: u32, ay: u32, bx: u32, by: u32, cx: u32, cy
 }
 
 fn main() {
-    let mut image = MyImage::new(200, 200);
+    let (width, height) = (800, 800);
+    let mut image = MyImage::new(width, height);
 
-    triangle(&mut image, 10, 10, 100, 30, 280, 160, RED);
+    let model = Model::new("./obj/african_head.obj");
+
+    for abc in model.faces {
+        for i in 0..3 {
+            let v0 = model.verts[abc[i]];
+            let v1 = model.verts[abc[(i+1)%3]];
+            let x0 = ((v0.x+1.0)/2.0 * (width-1) as f32) as u32;
+            let y0 = ((v0.y+1.0)/2.0 * (height-1) as f32) as u32;
+            let x1 = ((v1.x+1.0)/2.0 * (width-1) as f32) as u32;
+            let y1 = ((v1.y+1.0)/2.0 * (height-1) as f32) as u32;
+            line(&mut image, x0, y0, x1, y1, WHITE);
+        }
+    }
 
     image.write_img("output.png");
 }
