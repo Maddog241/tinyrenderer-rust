@@ -3,7 +3,7 @@ mod model;
 
 use std::mem::swap;
 
-use cgmath::Vector3;
+use cgmath::{Vector3, Point2};
 use image::Rgb;
 use model::Model;
 use myimage::MyImage;
@@ -14,9 +14,9 @@ const RED: Rgb<u8> = Rgb([255, 0, 0]);
 const GREEN: Rgb<u8> = Rgb([0, 255, 0]);
 const BLUE: Rgb<u8> = Rgb([0, 0, 255]);
 
-fn line(image: &mut MyImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>) {
-    let (mut x0, mut x1) = (x0 as f64, x1 as f64);
-    let (mut y0, mut y1) = (y0 as f64, y1 as f64);
+fn line(image: &mut MyImage, p0: Point2<u32>, p1: Point2<u32>, color: Rgb<u8>) {
+    let (mut x0, mut x1) = (p0.x as f64, p1.x as f64);
+    let (mut y0, mut y1) = (p0.y as f64, p1.y as f64);
 
     let mut steep = false;
     if (x0 - x1).abs() < (y0 - y1).abs() {
@@ -55,9 +55,9 @@ fn line(image: &mut MyImage, x0: u32, y0: u32, x1: u32, y1: u32, color: Rgb<u8>)
     }
 }
 
-fn barycentric(x: u32, y: u32, ax: u32, ay: u32, bx: u32, by: u32, cx: u32, cy: u32) -> (f64, f64, f64) {
-    let vec_x = Vector3::new(bx as f64 - ax as f64, cx as f64 - ax as f64, ax as f64 - x as f64);
-    let vec_y = Vector3::new(by as f64 - ay as f64, cy as f64 - ay as f64, ay as f64 - y as f64);
+fn barycentric(p: Point2<u32>, a: Point2<u32>, b: Point2<u32>, c: Point2<u32>) -> (f32, f32, f32) {
+    let vec_x = Vector3::new(b.x as f32 - a.x as f32, c.x as f32 - a.x as f32, a.x as f32 - p.x as f32);
+    let vec_y = Vector3::new(b.y as f32 - a.y as f32, c.y as f32 - a.y as f32, a.y as f32 - p.y as f32);
     let mut uv1 = vec_x.cross(vec_y);
     if uv1.z == 0.0 {
         // in this case, the triangle is degenerate
@@ -71,14 +71,14 @@ fn barycentric(x: u32, y: u32, ax: u32, ay: u32, bx: u32, by: u32, cx: u32, cy: 
 }
 
 
-fn triangle(image: &mut MyImage, ax: u32, ay: u32, bx: u32, by: u32, cx: u32, cy: u32, color: Rgb<u8>) {
+fn triangle(image: &mut MyImage, a: Point2<u32>, b: Point2<u32>, c: Point2<u32>, color: Rgb<u8>) {
     let (image_width, image_height) = image.dimensions();
-    let (x_min, x_max) = (ax.min(bx.min(cx)), ax.max(bx.max(cx)).min(image_width-1));
-    let (y_min, y_max) = (ay.min(by.min(cy)), ay.max(by.max(cy)).min(image_height-1));
+    let (x_min, x_max) = (a.x.min(b.x.min(c.x)), a.x.max(b.x.max(c.x)).min(image_width-1));
+    let (y_min, y_max) = (a.y.min(b.y.min(c.y)), a.y.max(b.y.max(c.y)).min(image_height-1));
 
     for x in x_min..(x_max+1) {
         for y in y_min..(y_max+1) {
-            let (u_a, u_b, u_c) = barycentric(x, y, ax, ay, bx, by, cx, cy);
+            let (u_a, u_b, u_c) = barycentric(Point2::new(x,y), a, b, c);
             if u_a >= 0.0 && u_b >= 0.0 && u_c >= 0.0 {
                 image.set(x, y, color);
             }
@@ -104,7 +104,7 @@ fn main() {
         let x2 = ((v2.x+1.0)/2.0 * (width-1) as f32) as u32;
         let y2 = ((v2.y+1.0)/2.0 * (height-1) as f32) as u32;
 
-        triangle(&mut image, x0, y0, x1, y1, x2, y2, Rgb([random::<u8>(), random::<u8>(), random::<u8>()]));
+        triangle(&mut image, Point2::new(x0, y0), Point2::new(x1, y1), Point2::new(x2, y2), Rgb([random::<u8>(), random::<u8>(), random::<u8>()]));
     }
 
     image.write_img("output.png");
