@@ -4,7 +4,7 @@ mod vertex;
 
 use std::{f32::consts::PI, mem::swap};
 
-use cgmath::{point3, EuclideanSpace, InnerSpace, Matrix4, Point2, Point3, Vector3, Vector4};
+use cgmath::{EuclideanSpace, InnerSpace, Matrix4, Point2, Point3, Vector3, Vector4, SquareMatrix};
 use image::{DynamicImage, Rgb};
 use model::Model;
 use myimage::MyImage;
@@ -206,6 +206,19 @@ fn model_mat(translate: Vector3<f32>, scale: Vector3<f32>) -> Matrix4<f32> {
     )
 }
 
+fn look_at(camera_pos: Point3<f32>, focal_pos: Point3<f32>, up: Vector3<f32>) -> Matrix4<f32> {
+    let w = (camera_pos - focal_pos).normalize();
+    let v = up;
+    let u = v.cross(w);
+
+    Matrix4::new(
+        u.x, u.y, u.z, 0.0,
+        v.x, v.y, v.z, 0.0,
+        w.x, w.y, w.z, 0.0,
+        camera_pos.x, camera_pos.y, camera_pos.z, 1.0,
+    )
+}
+
 fn screen_to_raster(fov: f32, near: f32, screen_coord: Point3<f32>) -> Option<Point3<f32>> {
     let half_height = (fov / 2.0).tan() * near.abs();
     let half_width = half_height * ASPECT_RATIO;
@@ -230,6 +243,7 @@ fn draw_african_head(image: &mut MyImage) {
     // println!("len tex_bytes: {}", tex_bytes.len());
     // println!("dimension: {:?}", tex_dimension);
     let mvp = perspective_mat(NEAR, FAR)
+        * look_at(Point3::new(15.0, 10.0, -5.0), Point3::new(0.0, 0.0, -30.0), Vector3::new(0.0, 1.0, 0.0)).invert().unwrap()
         * model_mat(
             Vector3::new(0.0, 0.0, -30.0),
             Vector3::new(10.0, 10.0, 10.0),
