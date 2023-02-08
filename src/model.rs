@@ -6,6 +6,8 @@ pub struct Model {
     pub faces: Vec<Vector3<usize>>, 
     pub texcoords: Vec<f32>,
     pub texcoords_indices: Vec<Vector3<usize>>,
+    pub normals: Vec<Vector3<f32>>,
+    pub normal_indices: Vec<Vector3<usize>>,
 }
 
 impl Model {
@@ -37,9 +39,21 @@ impl Model {
         println!("number of faces: {}", n_face);
         println!("indices len: {}", model.mesh.indices.len());
         println!("tex coord indices len: {}", model.mesh.texcoord_indices.len());
+        println!("tex coord len: {}", model.mesh.texcoords.len());
         for i in 0..n_face {
             faces.push(Vector3::new(model.mesh.indices[3*i] as usize, model.mesh.indices[3*i+1] as usize, model.mesh.indices[3*i+2] as usize));
             texcoords_indices.push(Vector3::new(model.mesh.texcoord_indices[3*i] as usize, model.mesh.texcoord_indices[3*i+1] as usize, model.mesh.texcoord_indices[3*i+2] as usize));
+        }
+
+        let mut normals = Vec::new();
+        let mut normal_indices = Vec::new();
+
+        for i in 0..n_face {
+            normal_indices.push(Vector3::new(model.mesh.normal_indices[3*i] as usize, model.mesh.normal_indices[3*i+1] as usize, model.mesh.normal_indices[3*i+2] as usize));
+        }
+
+        for chunk in model.mesh.normals.chunks(3) {
+            normals.push(Vector3::new(chunk[0], chunk[1], chunk[2]));
         }
 
         Self {
@@ -47,6 +61,8 @@ impl Model {
             faces,
             texcoords: model.mesh.texcoords.clone(),
             texcoords_indices,
+            normals,
+            normal_indices,
         }
     }
 }
