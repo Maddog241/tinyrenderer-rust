@@ -1,4 +1,4 @@
-use image::{RgbImage, Rgb, ImageOutputFormat};
+use image::{ImageOutputFormat, Rgb, RgbImage};
 
 pub struct MyImage {
     img: RgbImage,
@@ -12,12 +12,14 @@ impl MyImage {
     }
 
     pub fn set(&mut self, x: u32, y: u32, rgb: Rgb<u8>) {
-        self.img.put_pixel(x, self.img.dimensions().1-1-y, rgb)
+        self.img.put_pixel(x, self.img.dimensions().1 - 1 - y, rgb)
     }
 
     pub fn write_img(&self, path: &str) {
         let mut writer = std::fs::File::create(path).unwrap();
-        self.img.write_to(&mut writer, ImageOutputFormat::Png).unwrap(); 
+        self.img
+            .write_to(&mut writer, ImageOutputFormat::Png)
+            .unwrap();
     }
 
     pub fn dimensions(&self) -> (u32, u32) {

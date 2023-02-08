@@ -1,9 +1,9 @@
-use cgmath::{Vector3, Point3};
+use cgmath::{Point3, Vector3};
 use tobj;
 
 pub struct Model {
     pub verts: Vec<Point3<f32>>,
-    pub faces: Vec<Vector3<usize>>, 
+    pub faces: Vec<Vector3<usize>>,
     pub texcoords: Vec<f32>,
     pub texcoords_indices: Vec<Vector3<usize>>,
     pub normals: Vec<Vector3<f32>>,
@@ -11,13 +11,13 @@ pub struct Model {
 }
 
 impl Model {
-    // 
+    //
     pub fn new(path: &str) -> Self {
         let file = tobj::load_obj(
             path,
             &tobj::LoadOptions {
                 ..Default::default()
-            }
+            },
         );
 
         let (models, _materials) = file.expect("Failed to open the .obj file");
@@ -38,18 +38,33 @@ impl Model {
         let n_face = model.mesh.indices.len() / 3;
         println!("number of faces: {}", n_face);
         println!("indices len: {}", model.mesh.indices.len());
-        println!("tex coord indices len: {}", model.mesh.texcoord_indices.len());
+        println!(
+            "tex coord indices len: {}",
+            model.mesh.texcoord_indices.len()
+        );
         println!("tex coord len: {}", model.mesh.texcoords.len());
         for i in 0..n_face {
-            faces.push(Vector3::new(model.mesh.indices[3*i] as usize, model.mesh.indices[3*i+1] as usize, model.mesh.indices[3*i+2] as usize));
-            texcoords_indices.push(Vector3::new(model.mesh.texcoord_indices[3*i] as usize, model.mesh.texcoord_indices[3*i+1] as usize, model.mesh.texcoord_indices[3*i+2] as usize));
+            faces.push(Vector3::new(
+                model.mesh.indices[3 * i] as usize,
+                model.mesh.indices[3 * i + 1] as usize,
+                model.mesh.indices[3 * i + 2] as usize,
+            ));
+            texcoords_indices.push(Vector3::new(
+                model.mesh.texcoord_indices[3 * i] as usize,
+                model.mesh.texcoord_indices[3 * i + 1] as usize,
+                model.mesh.texcoord_indices[3 * i + 2] as usize,
+            ));
         }
 
         let mut normals = Vec::new();
         let mut normal_indices = Vec::new();
 
         for i in 0..n_face {
-            normal_indices.push(Vector3::new(model.mesh.normal_indices[3*i] as usize, model.mesh.normal_indices[3*i+1] as usize, model.mesh.normal_indices[3*i+2] as usize));
+            normal_indices.push(Vector3::new(
+                model.mesh.normal_indices[3 * i] as usize,
+                model.mesh.normal_indices[3 * i + 1] as usize,
+                model.mesh.normal_indices[3 * i + 2] as usize,
+            ));
         }
 
         for chunk in model.mesh.normals.chunks(3) {

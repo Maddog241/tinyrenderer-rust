@@ -1,4 +1,4 @@
-use cgmath::{Point3, Point2, Vector3};
+use cgmath::{Point2, Point3, Vector3};
 
 pub struct Vertex {
     pub position: Point3<f32>,
@@ -15,4 +15,3 @@ impl Vertex {
         }
     }
 }
-
