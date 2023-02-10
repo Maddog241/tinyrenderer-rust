@@ -1,9 +1,9 @@
 use std::mem::swap;
 
-use cgmath::{Vector3, Point2, Point3, EuclideanSpace, InnerSpace, Matrix4};
+use cgmath::{Vector3, Point2, Point3, InnerSpace, Matrix4};
 use image::{Rgb, DynamicImage};
 
-use crate::{myimage::MyImage, vertex::Vertex};
+use crate::{myimage::MyImage, vertex::Vertex, shader::Shader, WIDTH};
 
 #[allow(dead_code)]
 pub fn line(image: &mut MyImage, p0: Point2<u32>, p1: Point2<u32>, color: Rgb<u8>) {
@@ -47,18 +47,18 @@ pub fn line(image: &mut MyImage, p0: Point2<u32>, p1: Point2<u32>, color: Rgb<u8
     }
 }
 
-pub fn barycentric(p: Point3<f32>, a: Point3<f32>, b: Point3<f32>, c: Point3<f32>) -> (f32, f32, f32) {
+pub fn barycentric(p: Point3<f32>, a: Point3<f32>, b: Point3<f32>, c: Point3<f32>) -> Vector3<f32> {
     let vec_x = Vector3::new(b.x - a.x, c.x - a.x, a.x - p.x);
     let vec_y = Vector3::new(b.y - a.y, c.y - a.y, a.y - p.y);
     let mut uv1 = vec_x.cross(vec_y);
     if uv1.z.abs() < 1e-2 {
         // in this case, the triangle is degenerate
-        (-1.0, 1.0, 1.0)
+        Vector3::new(-1.0, 1.0, 1.0)
     } else {
         uv1 /= uv1.z;
         let (u, v) = (uv1.x, uv1.y);
 
-        (1.0 - u - v, u, v)
+        Vector3::new(1.0 - u - v, u, v)
     }
 }
 
@@ -81,7 +81,7 @@ pub fn texture_2d(texture: &DynamicImage, tex_coord: Point2<f32>) -> Vector3<f32
 pub fn triangle(
     image: &mut MyImage,
     zbuffer: &mut Vec<f32>,
-    texture: &DynamicImage,
+    shader: &Shader,
     v: Vec<Vertex>
 ) {
     assert!(v.len() == 3);
@@ -102,39 +102,30 @@ pub fn triangle(
 
     for x in x_min..(x_max + 1) {
         for y in y_min..(y_max + 1) {
-            let (u_a, u_b, u_c) = barycentric(
+            // compute baricentric coord
+            let bar = barycentric(
                 Point3::new(x as f32, y as f32, 0.0f32),
                 v[0].position,
                 v[1].position,
                 v[2].position,
             );
-            if u_a >= 0.0 && u_b >= 0.0 && u_c >= 0.0 {
+            // interpolate z value
+            let z = bar.x * v[0].position.z + bar.y * v[1].position.z + bar.z * v[2].position.z;
+            let depth = &mut zbuffer[x as usize + y as usize * WIDTH as usize];
+
+            // check if fragment inside triangle
+            // and depth test
+            if bar.x >= 0.0 && bar.y >= 0.0 && bar.z >= 0.0 && z > *depth {
                 // interpolate z value
-                let z = u_a * v[0].position.z + u_b * v[1].position.z + u_c * v[2].position.z;
-                if zbuffer[x as usize + y as usize * image_width as usize] < z {
-                    zbuffer[x as usize + y as usize * image_width as usize] = z;
-                    // interpolate tex coordinates
-                    let tex_coord = u_a * v[0].tex_coord
-                        + (u_b * v[1].tex_coord).to_vec()
-                        + (u_c * v[2].tex_coord).to_vec();
-                    let color = texture_2d(&texture, tex_coord);
+                let gl_fragcolor = shader.fragment(v.clone(), bar);
 
-                    // lambert's law
-                    let normal = u_a * v[0].normal + u_b * v[1].normal + u_c * v[2].normal;
-                    let cosine = normal.dot(Vector3::new(0.0, 0.0, 1.0)).max(0.0);
-
-                    let intensity = color * cosine;
-                    image.set(
-                        x,
-                        y,
-                        Rgb([
-                            (intensity.x * 255.0) as u8,
-                            (intensity.y * 255.0) as u8,
-                            (intensity.z * 255.0) as u8,
-                        ]),
-                    );
+                if let Some(rgb) = gl_fragcolor {
+                    // do not discard this fragment
+                    // update color buffer and depth buffer
+                    image.set(x, y, rgb);
+                    *depth = z;
                 }
-            }
+           }
         }
     }
 }
