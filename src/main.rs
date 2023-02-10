@@ -56,15 +56,14 @@ fn main() {
     let tex =
         image::open("./obj/african_head_diffuse.tga").expect("failed to open the texture file");
     
-    let mvp = screen_to_raster(FOV, NEAR)
-        * perspective_mat(NEAR, FAR)
-        * look_at(CAMERA_POS, FOCAL_POS, CAMERA_UP).invert().unwrap()
-        * model_mat(
+    let model_matrix =  model_mat(
             Vector3::new(0.0, 0.0, -30.0),
             Vector3::new(10.0, 10.0, 10.0),
         );
+    let view_matrix = look_at(CAMERA_POS, FOCAL_POS, CAMERA_UP).invert().unwrap();
+    let projection_matrix = screen_to_raster(FOV, NEAR) * perspective_mat(NEAR, FAR);
 
-    let shader = Shader::new(mvp, tex);
+    let shader = Shader::new(model_matrix, view_matrix, projection_matrix, tex);
 
     for i in 0..model.faces.len() {
         let mut v = Vec::new();

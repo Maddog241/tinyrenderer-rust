@@ -1,23 +1,27 @@
-use cgmath::{Point3, Vector3, Vector4, Point2, Matrix4, EuclideanSpace, InnerSpace};
+use cgmath::{Point3, Vector3, Point2, Matrix4, EuclideanSpace, InnerSpace, SquareMatrix, Matrix};
 use image::{DynamicImage, Rgb};
 
 use crate::{vertex::Vertex, mygl::texture_2d};
 
 pub struct Shader {
-    mvp: Matrix4<f32>,
+    model_matrix: Matrix4<f32>,
+    view_matrix: Matrix4<f32>,
+    projection_matrix: Matrix4<f32>,
     texture: DynamicImage,
 }
 
 impl Shader {
-    pub fn new(mvp: Matrix4<f32>, texture: DynamicImage) -> Self {
+    pub fn new(model_matrix: Matrix4<f32>, view_matrix: Matrix4<f32>, projection_matrix: Matrix4<f32>, texture: DynamicImage) -> Self {
         Shader {
-            mvp,
+            model_matrix,
+            view_matrix,
+            projection_matrix,
             texture,
         }
     }
 
     pub fn vertex(&self, local_coord: Point3<f32>, tex_coord: Point2<f32>, normal: Vector3<f32>) -> Vertex {
-        let raster_coord = self.mvp * Vector4::new(local_coord.x, local_coord.y, local_coord.z, 1.0);
+        let raster_coord = self.projection_matrix * self.view_matrix * self.model_matrix * local_coord.to_vec().extend(1.0);
         Vertex::new(Point3::from_homogeneous(raster_coord), tex_coord, normal)
     }
 
@@ -29,8 +33,12 @@ impl Shader {
         let color = texture_2d(&self.texture, tex_coord);
 
         // lambert's law
+
         let normal = bar.x * v[0].normal + bar.y * v[1].normal + bar.z * v[2].normal;
-        let cosine = normal.dot(Vector3::new(0.0, 0.0, 1.0)).max(0.0);
+        let world_normal = (self.model_matrix.invert().unwrap().transpose() * normal.extend(0.0)).truncate().normalize();
+        let frag_to_light = Vector3::new(0.0, 0.0, 1.0);
+
+        let cosine = world_normal.dot(frag_to_light).max(0.0);
 
         let intensity = color * cosine;
         
