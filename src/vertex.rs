@@ -1,9 +1,11 @@
 use cgmath::{Point2, Point3, Vector3};
 
+use crate::mygl::Float;
+
 #[derive(Clone)]
 pub struct Vertex {
-    pub gl_position: Point3<f32>,
-    pub tex_coord: Point2<f32>,
-    pub normal: Vector3<f32>,
-    pub a_pos: Point3<f32>,
+    pub gl_position: Point3<Float>,
+    pub tex_coord: Point2<Float>,
+    pub normal: Vector3<Float>,
+    pub a_pos: Point3<Float>,
 }
