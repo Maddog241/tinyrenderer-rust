@@ -4,7 +4,7 @@ mod vertex;
 mod mygl;
 mod shader;
 
-use std::{f32::consts::PI, process::exit};
+use std::f32::consts::PI;
 
 use cgmath::{Point2, Point3, Vector3, SquareMatrix};
 use model::Model;
