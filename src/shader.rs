@@ -1,9 +1,14 @@
 use cgmath::{Point3, Vector3, Point2, Matrix4, EuclideanSpace, InnerSpace, SquareMatrix, Matrix};
 use image::{DynamicImage, Rgb};
 
-use crate::{vertex::Vertex, mygl::texture_2d};
+use crate::{vertex::Vertex, mygl::texture_2d, myimage::MyImage};
 
-pub struct Shader {
+pub trait Shader {
+    fn vertex(&self, local_coord: Point3<f32>, tex_coord: Point2<f32>, normal: Vector3<f32>) -> Vertex;
+    fn fragment(&self, v: Vec<Vertex>, bar: Vector3<f32>) -> Option<Rgb<u8>>;
+}
+
+pub struct MyShader {
     pub model_matrix: Matrix4<f32>,
     pub view_matrix: Matrix4<f32>,
     pub projection_matrix: Matrix4<f32>,
@@ -12,10 +17,12 @@ pub struct Shader {
     pub camera_pos: Point3<f32>,
     pub light_pos: Point3<f32>,
     pub light_color: Vector3<f32>,
+    pub shadowbuffer: MyImage,
+    pub world_to_sm: Matrix4<f32>,
 }
 
-impl Shader {
-    pub fn vertex(&self, local_coord: Point3<f32>, tex_coord: Point2<f32>, normal: Vector3<f32>) -> Vertex {
+impl Shader for MyShader {
+    fn vertex(&self, local_coord: Point3<f32>, tex_coord: Point2<f32>, normal: Vector3<f32>) -> Vertex {
         let raster_coord = self.projection_matrix * self.view_matrix * self.model_matrix * local_coord.to_vec().extend(1.0);
         Vertex{
             gl_position: Point3::from_homogeneous(raster_coord),
@@ -25,7 +32,7 @@ impl Shader {
         }
     }
 
-    pub fn fragment(&self, v: Vec<Vertex>, bar: Vector3<f32>) -> Option<Rgb<u8>> {
+    fn fragment(&self, v: Vec<Vertex>, bar: Vector3<f32>) -> Option<Rgb<u8>> {
         // interpolate tex coordinates
         let tex_coord = bar.x * v[0].tex_coord
             + (bar.y * v[1].tex_coord).to_vec()
@@ -56,11 +63,46 @@ impl Shader {
         let specular = 0.1 * self.light_color * half_vec.dot(world_normal).powf(100.0f32);
 
         let intensity = ambient + diffuse + specular;
+
+        // lookup shadow map
+        let mut unblocked = false;
+        // from world coordinate to shadow map coordinate
+        let sm_coord = self.world_to_sm * self.model_matrix * a_pos.to_vec().extend(1.0);
+        let (sm_x, sm_y) = (sm_coord.x as u32, sm_coord.y as u32);
+        let depth = self.shadowbuffer.get(sm_x, sm_y).0[0];
+        if sm_coord.z.abs()+0.01 > depth as f32 / 255.0 { unblocked = true; }
+
+        let k: f32 = if unblocked { 1.0 } else { 0.3 };
         
         Some(Rgb([
-            (intensity.x.clamp(0.0, 1.0) * 255.999) as u8,
-            (intensity.y.clamp(0.0, 1.0) * 255.999) as u8,
-            (intensity.z.clamp(0.0, 1.0) * 255.999) as u8,
+            (k * intensity.x.clamp(0.0, 1.0) * 255.999) as u8,
+            (k * intensity.y.clamp(0.0, 1.0) * 255.999) as u8,
+            (k * intensity.z.clamp(0.0, 1.0) * 255.999) as u8,
         ]))
+    }
+}
+
+pub struct ShadowShader {
+    pub model_matrix: Matrix4<f32>,
+    pub view_matrix: Matrix4<f32>,
+    pub projection_matrix: Matrix4<f32>,
+}
+
+impl Shader for ShadowShader {
+    fn vertex(&self, local_coord: Point3<f32>, tex_coord: Point2<f32>, normal: Vector3<f32>) -> Vertex {
+        let raster_coord = self.projection_matrix * self.view_matrix * self.model_matrix * local_coord.to_vec().extend(1.0);
+        Vertex{
+            gl_position: Point3::from_homogeneous(raster_coord),
+            tex_coord,
+            normal,
+            a_pos: local_coord,
+        }
+    }
+
+    fn fragment(&self, v: Vec<Vertex>, bar: Vector3<f32>) -> Option<Rgb<u8>> {
+        let z = bar.dot(Vector3::new(v[0].gl_position.z, v[1].gl_position.z, v[2].gl_position.z));
+        let k = z.abs() * 255.0;
+
+        Some(Rgb([k as u8, k as u8, k as u8]))
     }
 }

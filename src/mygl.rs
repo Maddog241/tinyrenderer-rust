@@ -1,6 +1,6 @@
 use std::mem::swap;
 
-use cgmath::{Vector3, Point2, Point3, InnerSpace, Matrix4};
+use cgmath::{Vector3, Point2, Point3, InnerSpace, Matrix4, ortho};
 use image::{Rgb, DynamicImage};
 
 use crate::{myimage::MyImage, vertex::Vertex, shader::Shader, WIDTH};
@@ -84,7 +84,7 @@ pub fn texture_2d(texture: &DynamicImage, tex_coord: Point2<f32>) -> Vector3<f32
 pub fn triangle(
     image: &mut MyImage,
     zbuffer: &mut Vec<f32>,
-    shader: &Shader,
+    shader: &impl Shader,
     v: Vec<Vertex>
 ) {
     assert!(v.len() == 3);
@@ -134,8 +134,28 @@ pub fn triangle(
 }
 
 
-pub fn perspective_mat(near: f32, far: f32) -> Matrix4<f32> {
+
+pub fn ortho_mat(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32, image_width: u32, image_height: u32) -> Matrix4<f32> {
     Matrix4::new(
+        image_width as f32 / 2.0, 0.0, 0.0, 0.0,
+        0.0, image_height as f32 / 2.0, 0.0, 0.0,
+        0.0, 0.0, 0.5, 0.0,
+        image_width as f32 / 2.0, image_height as f32 /2.0, 1.0, 1.0
+    )
+    * ortho(left, right, bottom, top, near, far)
+}
+
+pub fn perspective_mat(fov: f32, near: f32, far: f32, image_width: u32, image_height: u32) -> Matrix4<f32> {
+    let height = (fov / 2.0).tan() * near.abs() * 2.0;
+    let aspect_ratio = image_width as f32 / image_height as f32;
+    let width = height * aspect_ratio;
+
+    Matrix4::new(
+        WIDTH as f32 / width, 0.0, 0.0, 0.0,
+        0.0, image_height as f32 / height, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        WIDTH as f32 / 2.0, image_width as f32 / 2.0, 0.0, 1.0
+    ) * Matrix4::new(
         near,
         0.0,
         0.0,

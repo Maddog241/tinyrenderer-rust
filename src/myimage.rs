@@ -25,4 +25,8 @@ impl MyImage {
     pub fn dimensions(&self) -> (u32, u32) {
         self.img.dimensions()
     }
+
+    pub fn get(&self, x: u32, y: u32) -> Rgb<u8> {
+        self.img.get_pixel(x, self.img.dimensions().1 - 1 - y).clone()
+    }
 }
