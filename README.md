@@ -3,4 +3,4 @@ rust version of the [tinyrenderer](https://github.com/ssloy/tinyrenderer/wiki) c
 
 ### Current Result
 
-![shadow_mapping](lesson7_sm_highres.png)
+![shadow_mapping](lesson7_sm.png)
