@@ -67,13 +67,16 @@ pub fn texture_2d(texture: &DynamicImage, tex_coord: Point2<f32>) -> Vector3<f32
     let (tex_width, tex_height) = (texture.width() as f32, texture.height() as f32);
     let (u, v) = (tex_coord.x, tex_coord.y);
     let (i, j) = (
-        (u * (tex_width - 1.0)) as usize,
-        (v * (tex_height - 1.0)) as usize,
+        (u * (tex_width - 0.001)) as usize,
+        (v * (tex_height - 0.001)) as usize,
     );
 
     let bytes = texture.as_bytes();
+    // if the image has no alpha channel, k = 3, else 4 ?
+    let k = bytes.len() / tex_width as usize / tex_height as usize;
+
     let index = (tex_height as usize - 1 - j) * tex_width as usize + i;
-    let (r, g, b) = (bytes[3 * index], bytes[3 * index + 1], bytes[3 * index + 2]);
+    let (r, g, b) = (bytes[k * index], bytes[k * index + 1], bytes[k * index + 2]);
 
     Vector3::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0)
 }
@@ -90,7 +93,7 @@ pub fn triangle(
     let mut bbox_min = Point2::new(image_width as f32 - 1.0, image_height as f32 - 1.0);
     let mut bbox_max = Point2::new(0.0f32, 0.0f32);
 
-    for point in [v[0].position, v[1].position, v[2].position] {
+    for point in [v[0].gl_position, v[1].gl_position, v[2].gl_position] {
         bbox_min.x = bbox_min.x.min(point.x);
         bbox_min.y = bbox_min.y.min(point.y);
         bbox_max.x = bbox_max.x.max(point.x);
@@ -105,12 +108,12 @@ pub fn triangle(
             // compute baricentric coord
             let bar = barycentric(
                 Point3::new(x as f32, y as f32, 0.0f32),
-                v[0].position,
-                v[1].position,
-                v[2].position,
+                v[0].gl_position,
+                v[1].gl_position,
+                v[2].gl_position,
             );
             // interpolate z value
-            let z = bar.x * v[0].position.z + bar.y * v[1].position.z + bar.z * v[2].position.z;
+            let z = bar.x * v[0].gl_position.z + bar.y * v[1].gl_position.z + bar.z * v[2].gl_position.z;
             let depth = &mut zbuffer[x as usize + y as usize * WIDTH as usize];
 
             // check if fragment inside triangle
@@ -154,8 +157,8 @@ pub fn perspective_mat(near: f32, far: f32) -> Matrix4<f32> {
 
 pub fn look_at(camera_pos: Point3<f32>, focal_pos: Point3<f32>, up: Vector3<f32>) -> Matrix4<f32> {
     let w = (camera_pos - focal_pos).normalize();
-    let v = up;
-    let u = v.cross(w);
+    let u = up.cross(w).normalize();
+    let v = w.cross(u);
 
     Matrix4::new(
         u.x, u.y, u.z, 0.0,

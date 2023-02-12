@@ -4,25 +4,25 @@ use image::{DynamicImage, Rgb};
 use crate::{vertex::Vertex, mygl::texture_2d};
 
 pub struct Shader {
-    model_matrix: Matrix4<f32>,
-    view_matrix: Matrix4<f32>,
-    projection_matrix: Matrix4<f32>,
-    texture: DynamicImage,
+    pub model_matrix: Matrix4<f32>,
+    pub view_matrix: Matrix4<f32>,
+    pub projection_matrix: Matrix4<f32>,
+    pub texture: DynamicImage,
+    pub normal_map: Option<DynamicImage>,
+    pub camera_pos: Point3<f32>,
+    pub light_pos: Point3<f32>,
+    pub light_color: Vector3<f32>,
 }
 
 impl Shader {
-    pub fn new(model_matrix: Matrix4<f32>, view_matrix: Matrix4<f32>, projection_matrix: Matrix4<f32>, texture: DynamicImage) -> Self {
-        Shader {
-            model_matrix,
-            view_matrix,
-            projection_matrix,
-            texture,
-        }
-    }
-
     pub fn vertex(&self, local_coord: Point3<f32>, tex_coord: Point2<f32>, normal: Vector3<f32>) -> Vertex {
         let raster_coord = self.projection_matrix * self.view_matrix * self.model_matrix * local_coord.to_vec().extend(1.0);
-        Vertex::new(Point3::from_homogeneous(raster_coord), tex_coord, normal)
+        Vertex{
+            gl_position: Point3::from_homogeneous(raster_coord),
+            tex_coord,
+            normal,
+            a_pos: local_coord,
+        }
     }
 
     pub fn fragment(&self, v: Vec<Vertex>, bar: Vector3<f32>) -> Option<Rgb<u8>> {
@@ -31,21 +31,36 @@ impl Shader {
             + (bar.y * v[1].tex_coord).to_vec()
             + (bar.z * v[2].tex_coord).to_vec();
         let color = texture_2d(&self.texture, tex_coord);
+        let a_pos = bar.x * v[0].a_pos + (bar.y * v[1].a_pos).to_vec() + (bar.z * v[2].a_pos).to_vec();
 
         // lambert's law
 
-        let normal = bar.x * v[0].normal + bar.y * v[1].normal + bar.z * v[2].normal;
+        let normal = match &self.normal_map {
+            None => { bar.x * v[0].normal + bar.y * v[1].normal + bar.z * v[2].normal }
+            Some(normal_map) => {
+                texture_2d(normal_map, tex_coord).normalize()
+            }
+        };
+
+        // diffuse 
         let world_normal = (self.model_matrix.invert().unwrap().transpose() * normal.extend(0.0)).truncate().normalize();
-        let frag_to_light = Vector3::new(0.0, 0.0, 1.0);
+        let frag_to_light = (self.light_pos.to_vec() - (self.model_matrix * a_pos.to_vec().extend(1.0)).truncate()).normalize();
+        let diffuse = world_normal.dot(frag_to_light).max(0.0) * color;
 
-        let cosine = world_normal.dot(frag_to_light).max(0.0);
+        // ambient
+        let ambient = Vector3::new(0.05, 0.05, 0.05);
 
-        let intensity = color * cosine;
+        // specular
+        let frag_to_camera = (self.camera_pos.to_vec() - (self.model_matrix * a_pos.to_vec().extend(1.0)).truncate()).normalize();
+        let half_vec = ((frag_to_light + frag_to_camera) / 2.0).normalize();
+        let specular = 0.1 * self.light_color * half_vec.dot(world_normal).powf(100.0f32);
+
+        let intensity = ambient + diffuse + specular;
         
         Some(Rgb([
-            (intensity.x * 255.0) as u8,
-            (intensity.y * 255.0) as u8,
-            (intensity.z * 255.0) as u8,
+            (intensity.x.clamp(0.0, 1.0) * 255.999) as u8,
+            (intensity.y.clamp(0.0, 1.0) * 255.999) as u8,
+            (intensity.z.clamp(0.0, 1.0) * 255.999) as u8,
         ]))
     }
 }

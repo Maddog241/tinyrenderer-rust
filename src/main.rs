@@ -7,20 +7,19 @@ mod shader;
 use std::f32::consts::PI;
 
 use cgmath::{Point2, Point3, Vector3, SquareMatrix, Matrix4};
-use image::Rgb;
 use model::Model;
 use mygl::{perspective_mat, look_at, model_mat, triangle};
 use myimage::MyImage;
 use shader::Shader;
 
 #[allow(dead_code)]
-const WHITE: Rgb<u8> = Rgb([255, 255, 255]);
+const WHITE: Vector3<f32> = Vector3::new(1.0, 1.0, 1.0);
 #[allow(dead_code)]
-const RED: Rgb<u8> = Rgb([255, 0, 0]);
+const RED: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
 #[allow(dead_code)]
-const GREEN: Rgb<u8> = Rgb([0, 255, 0]);
+const GREEN: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
 #[allow(dead_code)]
-const BLUE: Rgb<u8> = Rgb([0, 0, 255]);
+const BLUE: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 800;
@@ -31,9 +30,12 @@ const FAR: f32 = -50.0;
 const FOV: f32 = PI / 4.0;
 const ASPECT_RATIO: f32 = WIDTH as f32 / HEIGHT as f32;
 
-const CAMERA_POS: Point3<f32> = Point3::new(15.0, 10.0, -5.0);
+// const CAMERA_POS: Point3<f32> = Point3::new(30.0, 0.0, -30.0);
+const CAMERA_POS: Point3<f32> = Point3::new(0.0, 0.0, 0.0);
 const FOCAL_POS: Point3<f32> = Point3::new(0.0, 0.0, -30.0);
 const CAMERA_UP: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
+
+const LIGHT_POS: Point3<f32> = Point3::new(10.0, 10.0, 0.0);
 
 fn screen_to_raster(fov: f32, near: f32) -> Matrix4<f32> {
     let height = (fov / 2.0).tan() * near.abs() * 2.0;
@@ -55,6 +57,8 @@ fn main() {
 
     let tex =
         image::open("./obj/african_head_diffuse.tga").expect("failed to open the texture file");
+    // let normal_map = 
+    //     image::open("./obj/african_head_nm.png").expect("failed to open the texture file");
     
     let model_matrix =  model_mat(
             Vector3::new(0.0, 0.0, -30.0),
@@ -63,7 +67,18 @@ fn main() {
     let view_matrix = look_at(CAMERA_POS, FOCAL_POS, CAMERA_UP).invert().unwrap();
     let projection_matrix = screen_to_raster(FOV, NEAR) * perspective_mat(NEAR, FAR);
 
-    let shader = Shader::new(model_matrix, view_matrix, projection_matrix, tex);
+
+    let shader = Shader {
+        model_matrix,
+        view_matrix,
+        projection_matrix,
+        texture: tex,
+        normal_map: None,
+        // normal_map: Some(normal_map),
+        camera_pos: CAMERA_POS,
+        light_pos: LIGHT_POS,
+        light_color: WHITE,
+    };
 
     for i in 0..model.faces.len() {
         let mut v = Vec::new();
