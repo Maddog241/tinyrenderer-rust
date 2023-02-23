@@ -38,7 +38,8 @@ const CAMERA_POS: Point3<Float> = Point3::new(0.0, 0.0, 0.0);
 const FOCAL_POS: Point3<Float> = Point3::new(0.0, 0.0, -30.0);
 const CAMERA_UP: Vector3<Float> = Vector3::new(0.0, 1.0, 0.0);
 
-const LIGHT_POS: Point3<Float> = Point3::new(-10.0, 5.0, -5.0);
+// const LIGHT_POS: Point3<Float> = Point3::new(-10.0, 5.0, -5.0);
+const LIGHT_POS: Point3<Float> = Point3::new(10.0, 10.0, 0.0);
 
 fn main() {
     let mut framebuffer = FrameBuffer::new(WIDTH, HEIGHT);
@@ -94,8 +95,8 @@ fn main() {
 
     let tex = image::open("./obj/diablo3/diablo3_pose_diffuse.tga")
         .expect("failed to open the texture file");
-    // let normal_map =
-    //     image::open("./obj/diablo3/diablo3_pose_nm.tga").expect("failed to open the texture file");
+    let normal_map =
+        image::open("./obj/diablo3/diablo3_pose_nm.tga").expect("failed to open the texture file");
 
     let view_matrix = look_at(CAMERA_POS, FOCAL_POS, CAMERA_UP).invert().unwrap();
     let projection_matrix = perspective_mat(FOV, NEAR, FAR, WIDTH, HEIGHT);
@@ -105,8 +106,8 @@ fn main() {
         view_matrix,
         projection_matrix,
         texture: tex,
-        normal_map: None,
-        // normal_map: Some(normal_map),
+        // normal_map: None,
+        normal_map: Some(normal_map),
         camera_pos: CAMERA_POS,
         light_pos: LIGHT_POS,
         light_color: WHITE,

@@ -58,7 +58,7 @@ impl Shader for MyShader {
 
         let normal = match &self.normal_map {
             None => bar.x * v[0].normal + bar.y * v[1].normal + bar.z * v[2].normal,
-            Some(normal_map) => texture_2d(normal_map, tex_coord).normalize(),
+            Some(normal_map) => texture_2d(normal_map, tex_coord)*2.0 - Vector3::new(1.0, 1.0, 1.0),
         };
 
         // diffuse
