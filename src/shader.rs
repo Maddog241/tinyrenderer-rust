@@ -1,4 +1,6 @@
-use cgmath::{EuclideanSpace, InnerSpace, Matrix, Matrix4, Point2, Point3, SquareMatrix, Vector3};
+use std::f64::consts::PI;
+
+use cgmath::{EuclideanSpace, InnerSpace, Matrix, Matrix4, Point2, Point3, SquareMatrix, Vector3, ElementWise};
 use image::DynamicImage;
 
 use crate::{mygl::{texture_2d, Float}, framebuffer::FrameBuffer, vertex::Vertex};
@@ -21,7 +23,7 @@ pub struct MyShader {
     pub normal_map: Option<DynamicImage>,
     pub camera_pos: Point3<Float>,
     pub light_pos: Point3<Float>,
-    pub light_color: Vector3<Float>,
+    pub light_intensity: Vector3<Float>,
     pub shadowbuffer: FrameBuffer,
     pub world_to_sm: Matrix4<Float>,
 }
@@ -50,7 +52,7 @@ impl Shader for MyShader {
         let tex_coord = bar.x * v[0].tex_coord
             + (bar.y * v[1].tex_coord).to_vec()
             + (bar.z * v[2].tex_coord).to_vec();
-        let color = texture_2d(&self.texture, tex_coord);
+        let reflectance = texture_2d(&self.texture, tex_coord);
         let a_pos =
             bar.x * v[0].a_pos + (bar.y * v[1].a_pos).to_vec() + (bar.z * v[2].a_pos).to_vec();
 
@@ -68,7 +70,7 @@ impl Shader for MyShader {
         let frag_to_light = (self.light_pos.to_vec()
             - (self.model_matrix * a_pos.to_vec().extend(1.0)).truncate())
         .normalize();
-        let diffuse = world_normal.dot(frag_to_light).max(0.0) * color;
+        let diffuse = reflectance.mul_element_wise(self.light_intensity/frag_to_light.magnitude2()) * world_normal.dot(frag_to_light).max(0.0) / PI;
 
         // ambient
         let ambient = Vector3::new(0.05, 0.05, 0.05);
@@ -78,7 +80,7 @@ impl Shader for MyShader {
             - (self.model_matrix * a_pos.to_vec().extend(1.0)).truncate())
         .normalize();
         let half_vec = ((frag_to_light + frag_to_camera) / 2.0).normalize();
-        let specular = 0.1 * self.light_color * half_vec.dot(world_normal).powf(100.0);
+        let specular = 0.1 * self.light_intensity/frag_to_light.magnitude2() * half_vec.dot(world_normal).powf(100.0);
 
         let intensity = ambient + diffuse + specular;
 

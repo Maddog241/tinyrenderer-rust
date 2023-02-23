@@ -110,7 +110,7 @@ fn main() {
         normal_map: Some(normal_map),
         camera_pos: CAMERA_POS,
         light_pos: LIGHT_POS,
-        light_color: WHITE,
+        light_intensity: Vector3::new(5.0, 5.0, 5.0),
         shadowbuffer,
         world_to_sm,
     };
